@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>マテリアル変換ツール</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0f13;
+    --surface: #1a1a24;
+    --surface2: #22222f;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.15);
+    --text: #e8e8f0;
+    --muted: #7a7a9a;
+    --hint: #4a4a6a;
+    --accent-a: #7c6af7;
+    --accent-a-bg: rgba(124,106,247,0.12);
+    --accent-a-border: rgba(124,106,247,0.35);
+    --accent-b: #2ec4a0;
+    --accent-b-bg: rgba(46,196,160,0.12);
+    --accent-b-border: rgba(46,196,160,0.35);
+    --success: #4ade80;
+    --success-bg: rgba(74,222,128,0.1);
+    --danger: #f87171;
+    --danger-bg: rgba(248,113,113,0.1);
+    --warning: #fbbf24;
+    --warning-bg: rgba(251,191,36,0.1);
+    --gold: #f5c842;
+    --radius: 10px;
+    --radius-lg: 14px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
+    min-height: 100vh;
+    padding: 1rem;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 1.25rem;
+    padding-bottom: 12px;
+    border-bottom: 0.5px solid var(--border);
+    letter-spacing: 0.05em;
+  }
+
+  .section-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--hint);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1rem 1.125rem;
+    margin-bottom: 10px;
+  }
+
+  .mat-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+
+  .mat-btn {
+    padding: 11px;
+    border-radius: var(--radius);
+    border: 0.5px solid var(--border2);
+    background: var(--surface2);
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+
+  .mat-btn.active-a {
+    background: var(--accent-a-bg);
+    border-color: var(--accent-a-border);
+    color: var(--accent-a);
+  }
+
+  .mat-btn.active-b {
+    background: var(--accent-b-bg);
+    border-color: var(--accent-b-border);
+    color: var(--accent-b);
+  }
+
+  .rate-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+  }
+
+  .ri { display: flex; flex-direction: column; gap: 5px; }
+
+  .ri label {
+    font-size: 10px;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  .ri-row { display: flex; gap: 3px; }
+
+  input[type="number"] {
+    background: var(--surface2);
+    border: 0.5px solid var(--border2);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-size: 15px;
+    padding: 8px 6px;
+    text-align: center;
+    font-family: inherit;
+    width: 100%;
+    transition: border-color 0.15s;
+    -moz-appearance: textfield;
+  }
+
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+  input[type="number"]:focus {
+    outline: none;
+    border-color: var(--accent-a-border);
+  }
+
+  input[type="number"]:disabled {
+    opacity: 0.25;
+    pointer-events: none;
+  }
+
+  .nb {
+    padding: 6px 5px;
+    border: 0.5px solid var(--border2);
+    border-radius: var(--radius);
+    background: var(--surface2);
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+
+  .nb.on {
+    background: var(--danger-bg);
+    border-color: rgba(248,113,113,0.4);
+    color: var(--danger);
+  }
+
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .fi { display: flex; flex-direction: column; gap: 5px; }
+  .fi label { font-size: 10px; color: var(--muted); font-weight: 500; }
+
+  .possess-row { display: flex; align-items: center; gap: 10px; }
+
+  .possess-row input {
+    flex: 1;
+    font-size: 20px;
+    padding: 10px 12px;
+    text-align: left;
+  }
+
+  .possess-row span {
+    font-size: 12px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .result-grid {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .rc {
+    background: var(--surface2);
+    border-radius: var(--radius);
+    padding: 12px 8px;
+    text-align: center;
+    border: 0.5px solid var(--border);
+  }
+
+  .rc.dis { opacity: 0.25; }
+
+  .rl { font-size: 10px; color: var(--muted); margin-bottom: 4px; font-weight: 500; }
+  .rv { font-size: 24px; font-weight: 700; color: var(--text); }
+  .rsub { font-size: 10px; margin-top: 3px; }
+  .rg { font-size: 11px; color: var(--gold); margin-top: 2px; }
+
+  .ok { color: var(--success); }
+  .ng { color: var(--danger); }
+  .mu { color: var(--hint); }
+
+  .divider {
+    border: none;
+    border-top: 0.5px solid var(--border);
+    margin: 12px 0;
+  }
+
+  .sr {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+  }
+
+  .sr span { font-size: 13px; color: var(--muted); }
+  .sv { font-size: 14px; font-weight: 600; }
+
+  .note { font-size: 11px; color: var(--hint); margin-top: 8px; text-align: center; }
+
+  .big-metric {
+    background: var(--surface2);
+    border-radius: var(--radius);
+    padding: 14px;
+    margin-bottom: 8px;
+    border: 0.5px solid var(--border);
+    text-align: center;
+  }
+
+  .bm-label { font-size: 10px; color: var(--muted); margin-bottom: 4px; font-weight: 500; }
+  .bm-val { font-size: 28px; font-weight: 700; color: var(--text); }
+  .bm-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+  .buy-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .buy-metric {
+    background: var(--surface2);
+    border-radius: var(--radius);
+    padding: 10px;
+    text-align: center;
+    border: 0.5px solid var(--border);
+  }
+
+  .bml { font-size: 10px; color: var(--muted); margin-bottom: 3px; font-weight: 500; }
+  .bmv { font-size: 16px; font-weight: 700; color: var(--text); }
+
+  .profit-full {
+    background: var(--surface2);
+    border-radius: var(--radius);
+    padding: 12px;
+    text-align: center;
+    border: 0.5px solid var(--border);
+    margin-bottom: 8px;
+  }
+
+  .rec-box {
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    font-size: 13px;
+    line-height: 1.6;
+    font-weight: 500;
+  }
+
+  .rec-box.profit {
+    background: var(--success-bg);
+    border: 0.5px solid rgba(74,222,128,0.25);
+    color: var(--success);
+  }
+
+  .rec-box.loss {
+    background: var(--warning-bg);
+    border: 0.5px solid rgba(251,191,36,0.25);
+    color: var(--warning);
+  }
+
+  .rec-box.zero {
+    background: var(--surface2);
+    border: 0.5px solid var(--border);
+    color: var(--muted);
+  }
+
+  .gold-text { color: var(--gold); }
+</style>
+</head>
+<body>
+
+<h1>マテリアル変換ツール</h1>
+
+<p class="section-label">マテリアル選択</p>
+<div class="mat-tabs">
+  <button class="mat-btn active-a" id="btnA" onclick="selectMat('A')">マテリアル A</button>
+  <button class="mat-btn" id="btnB" onclick="selectMat('B')">マテリアル B</button>
+</div>
+
+<div class="card">
+  <p class="section-label">今日のレート（変換に必要な個数）</p>
+  <div class="rate-grid">
+    <div class="ri">
+      <label>大 に必要</label>
+      <div class="ri-row">
+        <input type="number" id="rL" min="1" value="10" oninput="calc()">
+        <button class="nb" id="nL" onclick="toggleNone('L')">なし</button>
+      </div>
+    </div>
+    <div class="ri">
+      <label>中 に必要</label>
+      <div class="ri-row">
+        <input type="number" id="rM" min="1" value="5" oninput="calc()">
+        <button class="nb" id="nM" onclick="toggleNone('M')">なし</button>
+      </div>
+    </div>
+    <div class="ri">
+      <label>小 に必要</label>
+      <div class="ri-row">
+        <input type="number" id="rS" min="1" value="2" oninput="calc()">
+        <button class="nb" id="nS" onclick="toggleNone('S')">なし</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <p class="section-label">変換後のゴールド価値</p>
+  <div class="rate-grid">
+    <div class="ri"><label>大 (G)</label><input type="number" id="gL" min="0" value="100" oninput="calc()"></div>
+    <div class="ri"><label>中 (G)</label><input type="number" id="gM" min="0" value="40" oninput="calc()"></div>
+    <div class="ri"><label>小 (G)</label><input type="number" id="gS" min="0" value="10" oninput="calc()"></div>
+  </div>
+</div>
+
+<div class="card">
+  <p class="section-label">マテリアル購入設定</p>
+  <div class="two-col">
+    <div class="fi"><label>購入コスト (G/回)</label><input type="number" id="buyCost" min="1" value="50" oninput="calc()"></div>
+    <div class="fi"><label>購入数 (個/回)</label><input type="number" id="buyAmt" min="1" value="5" oninput="calc()"></div>
+  </div>
+</div>
+
+<div class="card">
+  <p class="section-label">現在の所持数</p>
+  <div class="possess-row">
+    <input type="number" id="possess" min="0" value="0" oninput="calc()">
+    <span id="plabel">個（マテリアル A）</span>
+  </div>
+</div>
+
+<div class="card">
+  <p class="section-label">変換結果（所持分のみ）</p>
+  <div class="result-grid" id="res-grid"></div>
+  <hr class="divider">
+  <p class="section-label">不足数</p>
+  <div id="shortage-area"></div>
+  <p class="note" id="remain-note"></p>
+</div>
+
+<div class="card">
+  <p class="section-label">購入最適化</p>
+  <div class="big-metric">
+    <div class="bm-label">最適購入回数</div>
+    <div class="bm-val" id="opt-times">—</div>
+    <div class="bm-sub" id="opt-sub"></div>
+  </div>
+  <div class="buy-grid">
+    <div class="buy-metric"><div class="bml">購入コスト合計</div><div class="bmv" id="opt-cost">—</div></div>
+    <div class="buy-metric"><div class="bml">変換後ゴールド</div><div class="bmv gold-text" id="opt-gold">—</div></div>
+  </div>
+  <div class="profit-full">
+    <div class="bml">純利益（変換G − 購入コスト）</div>
+    <div class="bmv" id="opt-profit">—</div>
+  </div>
+  <div class="rec-box zero" id="rec-box">入力すると推奨が表示されます</div>
+</div>
+
+<script>
+let mat = 'A';
+const none = { L: false, M: false, S: false };
+const tiers = ['L', 'M', 'S'];
+const names = { L: '大', M: '中', S: '小' };
+
+function selectMat(m) {
+  mat = m;
+  document.getElementById('btnA').className = 'mat-btn' + (m === 'A' ? ' active-a' : '');
+  document.getElementById('btnB').className = 'mat-btn' + (m === 'B' ? ' active-b' : '');
+  document.getElementById('plabel').textContent = '個（マテリアル ' + m + '）';
+  calc();
+}
+
+function toggleNone(t) {
+  none[t] = !none[t];
+  document.getElementById('n' + t).className = 'nb' + (none[t] ? ' on' : '');
+  document.getElementById('r' + t).disabled = none[t];
+  calc();
+}
+
+function getConvertResult(total) {
+  const rates = {}, golds = {};
+  tiers.forEach(t => {
+    rates[t] = none[t] ? null : (parseInt(document.getElementById('r' + t).value) || null);
+    golds[t] = parseInt(document.getElementById('g' + t).value) || 0;
+  });
+  const active = tiers.filter(t => rates[t] !== null);
+  let rem = total, g = 0;
+  const counts = {};
+  active.forEach(t => {
+    counts[t] = Math.floor(rem / rates[t]);
+    g += counts[t] * golds[t];
+    rem = rem - counts[t] * rates[t];
+  });
+  return { g, rem, counts, rates, golds, active };
+}
+
+function calc() {
+  const p = parseInt(document.getElementById('possess').value) || 0;
+  const buyCost = parseInt(document.getElementById('buyCost').value) || 0;
+  const buyAmt = parseInt(document.getElementById('buyAmt').value) || 1;
+  const base = getConvertResult(p);
+  const active = base.active;
+
+  const gridEl = document.getElementById('res-grid');
+  const cols = active.length || 1;
+  gridEl.style.gridTemplateColumns = cols === 1 ? '1fr' : cols === 2 ? '1fr 1fr' : '1fr 1fr 1fr';
+
+  let gridHTML = '';
+  tiers.forEach(t => {
+    if (none[t]) return;
+    const c = base.counts[t] || 0;
+    const gv = c * (parseInt(document.getElementById('g' + t).value) || 0);
+    gridHTML += `<div class="rc">
+      <div class="rl">${names[t]}</div>
+      <div class="rv">${c}</div>
+      <div class="rg">${gv.toLocaleString()}G</div>
+      <div class="rsub">${c > 0 ? '<span class="ok">変換可</span>' : '<span class="ng">不足</span>'}</div>
+    </div>`;
+  });
+  gridEl.innerHTML = gridHTML || '<div class="rc dis"><div class="rl">—</div></div>';
+
+  let shHTML = '';
+  if (active.length === 0) {
+    shHTML = '<div class="sr"><span class="mu">変換項目がありません</span></div>';
+  } else {
+    let rem2 = p;
+    active.forEach((t, i) => {
+      const c = base.counts[t] || 0;
+      if (c > 0) {
+        shHTML += `<div class="sr"><span>${names[t]}</span><span class="sv ok">変換できます</span></div>`;
+      } else {
+        const short = base.rates[t] - rem2;
+        shHTML += `<div class="sr"><span>${names[t]} に変換するには</span><span class="sv ng">あと ${Math.max(0, short)} 個</span></div>`;
+      }
+      rem2 = rem2 - c * base.rates[t];
+    });
+  }
+  document.getElementById('shortage-area').innerHTML = shHTML;
+  document.getElementById('remain-note').textContent = base.rem > 0 ? `変換後の余り: ${base.rem} 個` : active.length > 0 ? '余りなし' : '';
+
+  if (!buyCost || !buyAmt || active.length === 0) {
+    document.getElementById('opt-times').textContent = '—';
+    document.getElementById('opt-sub').textContent = '';
+    document.getElementById('opt-cost').textContent = '—';
+    document.getElementById('opt-gold').textContent = '—';
+    document.getElementById('opt-profit').textContent = '—';
+    document.getElementById('opt-profit').style.color = '';
+    document.getElementById('rec-box').className = 'rec-box zero';
+    document.getElementById('rec-box').textContent = '購入設定とレートを入力してください';
+    return;
+  }
+
+  let bestProfit = -Infinity, bestN = 0;
+  for (let n = 0; n <= 300; n++) {
+    const total = p + n * buyAmt;
+    const { g } = getConvertResult(total);
+    const profit = g - n * buyCost;
+    if (profit > bestProfit) { bestProfit = profit; bestN = n; }
+  }
+
+  const bestTotal = p + bestN * buyAmt;
+  const { g: bestG, rem: bestRem } = getConvertResult(bestTotal);
+  const bestCost = bestN * buyCost;
+
+  document.getElementById('opt-times').textContent = bestN === 0 ? '購入不要' : bestN + '回';
+  document.getElementById('opt-sub').textContent = bestN > 0
+    ? `+${bestN * buyAmt}個（所持合計 ${bestTotal}個）`
+    : '現在の所持数で最適';
+  document.getElementById('opt-cost').textContent = bestCost.toLocaleString() + 'G';
+  document.getElementById('opt-gold').textContent = bestG.toLocaleString() + 'G';
+
+  const profitEl = document.getElementById('opt-profit');
+  profitEl.textContent = (bestProfit >= 0 ? '+' : '') + bestProfit.toLocaleString() + 'G';
+  profitEl.style.color = bestProfit > 0 ? 'var(--success)' : bestProfit < 0 ? 'var(--danger)' : '';
+
+  const recEl = document.getElementById('rec-box');
+  if (bestN === 0 && bestProfit <= 0) {
+    recEl.className = 'rec-box loss';
+    recEl.textContent = '購入すると損になります。余りは次回に持ち越すか、そのまま使うことを推奨します。';
+  } else if (bestN === 0) {
+    recEl.className = 'rec-box zero';
+    recEl.textContent = '現在の所持数が最適です。追加購入は不要です。';
+  } else {
+    recEl.className = 'rec-box profit';
+    recEl.textContent = `${bestN}回購入（計 ${bestCost.toLocaleString()}G）すると変換後 ${bestG.toLocaleString()}G となり、純利益 +${bestProfit.toLocaleString()}G で最大になります。`
+      + (bestRem > 0 ? ` 余り ${bestRem} 個は保存推奨。` : '');
+  }
+}
+
+calc();
+</script>
+</body>
+</html>
