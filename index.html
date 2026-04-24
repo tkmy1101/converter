@@ -154,8 +154,8 @@ input[type=number]:disabled{opacity:0.25;pointer-events:none;}
 <div class="card">
   <p class="sl">マテリアル購入設定</p>
   <div class="two-col">
-    <div class="fi"><label>購入コスト (G/回)</label><input type="number" id="buyCost" min="1" value="50" oninput="calc()"></div>
-    <div class="fi"><label>購入数 (個/回)</label><input type="number" id="buyAmt" min="1" value="5" oninput="calc()"></div>
+    <div class="fi"><label>購入コスト (G/回)</label><input type="number" id="buyCost" min="1" oninput="calc()"></div>
+    <div class="fi"><label>購入数 (個/回)</label><input type="number" id="buyAmt" min="1" oninput="calc()"></div>
   </div>
 </div>
 
@@ -224,143 +224,155 @@ input[type=number]:disabled{opacity:0.25;pointer-events:none;}
 
 </div>
 <script>
-let mat='A';
-const none={L:false,M:false,S:false};
-const tiers=['L','M','S'];
-const names={L:'大',M:'中',S:'小'};
+// ============================================================
+// ★ 初期値設定 ― ここを変更するだけでOK
+// ============================================================
+const DEFAULT = {
+  A: { buyCost: 1000, buyAmt: 44  },  // マテリアルA
+  B: { buyCost: 1000, buyAmt: 250 },  // マテリアルB
+};
+// ============================================================
 
-function selectMat(m){
-  mat=m;
-  document.getElementById('app').className='app theme-'+(m==='A'?'a':'b');
-  document.getElementById('btnA').className='mat-btn'+(m==='A'?' active':'');
-  document.getElementById('btnB').className='mat-btn'+(m==='B'?' active':'');
-  document.getElementById('plabel').textContent='個（マテリアル '+m+'）';
-  document.getElementById('title-text').textContent='マテリアル変換ツール — '+m;
+let mat = 'A';
+const none = {L:false, M:false, S:false};
+const tiers = ['L','M','S'];
+const names = {L:'大', M:'中', S:'小'};
+
+function selectMat(m) {
+  mat = m;
+  document.getElementById('app').className = 'app theme-' + (m==='A' ? 'a' : 'b');
+  document.getElementById('btnA').className = 'mat-btn' + (m==='A' ? ' active' : '');
+  document.getElementById('btnB').className = 'mat-btn' + (m==='B' ? ' active' : '');
+  document.getElementById('plabel').textContent = '個（マテリアル ' + m + '）';
+  document.getElementById('title-text').textContent = 'マテリアル変換ツール — ' + m;
+  // 購入設定をそのマテリアルの初期値にリセット
+  document.getElementById('buyCost').value = DEFAULT[m].buyCost;
+  document.getElementById('buyAmt').value  = DEFAULT[m].buyAmt;
   calc();
 }
 
-function toggleNone(t){
-  none[t]=!none[t];
-  document.getElementById('n'+t).className='nb'+(none[t]?' on':'');
-  document.getElementById('r'+t).disabled=none[t];
+function toggleNone(t) {
+  none[t] = !none[t];
+  document.getElementById('n'+t).className = 'nb' + (none[t] ? ' on' : '');
+  document.getElementById('r'+t).disabled = none[t];
   calc();
 }
 
-function getConvertResult(total){
-  const rates={},golds={};
-  tiers.forEach(t=>{
-    rates[t]=none[t]?null:(parseInt(document.getElementById('r'+t).value)||null);
-    golds[t]=parseInt(document.getElementById('g'+t).value)||0;
+function getConvertResult(total) {
+  const rates={}, golds={};
+  tiers.forEach(t => {
+    rates[t] = none[t] ? null : (parseInt(document.getElementById('r'+t).value) || null);
+    golds[t] = parseInt(document.getElementById('g'+t).value) || 0;
   });
-  const active=tiers.filter(t=>rates[t]!==null);
-  let rem=total,g=0;
-  const counts={};
-  active.forEach(t=>{counts[t]=Math.floor(rem/rates[t]);g+=counts[t]*golds[t];rem=rem-counts[t]*rates[t];});
-  return{g,rem,counts,rates,golds,active};
+  const active = tiers.filter(t => rates[t] !== null);
+  let rem = total, g = 0;
+  const counts = {};
+  active.forEach(t => { counts[t] = Math.floor(rem/rates[t]); g += counts[t]*golds[t]; rem = rem - counts[t]*rates[t]; });
+  return {g, rem, counts, rates, golds, active};
 }
 
-function fmtDiff(v){
-  if(v===0)return'<span style="color:#7a7a9a">±0G</span>';
-  return v>0?`<span style="color:#4ade80">+${v.toLocaleString()}G</span>`:`<span style="color:#f87171">${v.toLocaleString()}G</span>`;
+function fmtDiff(v) {
+  if(v===0) return '<span style="color:#7a7a9a">±0G</span>';
+  return v>0 ? `<span style="color:#4ade80">+${v.toLocaleString()}G</span>` : `<span style="color:#f87171">${v.toLocaleString()}G</span>`;
 }
 
-function calc(){
-  const p=parseInt(document.getElementById('possess').value)||0;
-  const buyCost=parseInt(document.getElementById('buyCost').value)||0;
-  const buyAmt=parseInt(document.getElementById('buyAmt').value)||1;
-  const base=getConvertResult(p);
-  const active=base.active;
+function calc() {
+  const p = parseInt(document.getElementById('possess').value) || 0;
+  const buyCost = parseInt(document.getElementById('buyCost').value) || 0;
+  const buyAmt  = parseInt(document.getElementById('buyAmt').value)  || 1;
+  const base = getConvertResult(p);
+  const active = base.active;
 
-  const gridEl=document.getElementById('res-grid');
-  const cols=active.length||1;
-  gridEl.style.gridTemplateColumns=cols===1?'1fr':cols===2?'1fr 1fr':'1fr 1fr 1fr';
-  let gridHTML='';
-  tiers.forEach(t=>{
-    if(none[t])return;
-    const c=base.counts[t]||0;
-    const gv=c*(parseInt(document.getElementById('g'+t).value)||0);
-    gridHTML+=`<div class="rc"><div class="rl">${names[t]}</div><div class="rv">${c}</div><div class="rg">${gv.toLocaleString()}G</div><div class="rsub">${c>0?'<span class="ok">変換可</span>':'<span class="ng">不足</span>'}</div></div>`;
+  const gridEl = document.getElementById('res-grid');
+  const cols = active.length || 1;
+  gridEl.style.gridTemplateColumns = cols===1 ? '1fr' : cols===2 ? '1fr 1fr' : '1fr 1fr 1fr';
+  let gridHTML = '';
+  tiers.forEach(t => {
+    if(none[t]) return;
+    const c = base.counts[t] || 0;
+    const gv = c * (parseInt(document.getElementById('g'+t).value) || 0);
+    gridHTML += `<div class="rc"><div class="rl">${names[t]}</div><div class="rv">${c}</div><div class="rg">${gv.toLocaleString()}G</div><div class="rsub">${c>0?'<span class="ok">変換可</span>':'<span class="ng">不足</span>'}</div></div>`;
   });
-  gridEl.innerHTML=gridHTML||'<div class="rc" style="opacity:.3"><div class="rl">—</div></div>';
+  gridEl.innerHTML = gridHTML || '<div class="rc" style="opacity:.3"><div class="rl">—</div></div>';
 
-  let shHTML='';
-  if(active.length===0){
-    shHTML='<div class="sr"><span class="mu">変換項目がありません</span></div>';
+  let shHTML = '';
+  if(active.length===0) {
+    shHTML = '<div class="sr"><span class="mu">変換項目がありません</span></div>';
   } else {
-    let rem2=p;
-    active.forEach(t=>{
-      const c=base.counts[t]||0;
-      if(c>0){shHTML+=`<div class="sr"><span>${names[t]}</span><span class="sv ok">変換できます</span></div>`;}
-      else{const sh=base.rates[t]-rem2;shHTML+=`<div class="sr"><span>${names[t]} に変換するには</span><span class="sv ng">あと ${Math.max(0,sh)} 個</span></div>`;}
-      rem2=rem2-c*base.rates[t];
+    let rem2 = p;
+    active.forEach(t => {
+      const c = base.counts[t] || 0;
+      if(c>0){ shHTML += `<div class="sr"><span>${names[t]}</span><span class="sv ok">変換できます</span></div>`; }
+      else { const sh = base.rates[t]-rem2; shHTML += `<div class="sr"><span>${names[t]} に変換するには</span><span class="sv ng">あと ${Math.max(0,sh)} 個</span></div>`; }
+      rem2 = rem2 - c * base.rates[t];
     });
   }
-  document.getElementById('shortage-area').innerHTML=shHTML;
-  document.getElementById('remain-note').textContent=base.rem>0?`変換後の余り: ${base.rem} 個`:active.length>0?'余りなし':'';
+  document.getElementById('shortage-area').innerHTML = shHTML;
+  document.getElementById('remain-note').textContent = base.rem>0 ? `変換後の余り: ${base.rem} 個` : active.length>0 ? '余りなし' : '';
 
-  const compareSection=document.getElementById('compare-section');
+  const compareSection = document.getElementById('compare-section');
 
-  if(!buyCost||!buyAmt||active.length===0){
-    document.getElementById('opt-times').textContent='—';
-    document.getElementById('opt-sub').textContent='';
-    document.getElementById('opt-cost').textContent='—';
-    document.getElementById('opt-gold').textContent='—';
-    document.getElementById('opt-profit').textContent='—';
-    document.getElementById('opt-profit').style.color='';
-    document.getElementById('rec-box').className='rec-box zero';
-    document.getElementById('rec-box').textContent='購入設定とレートを入力してください';
-    compareSection.style.display='none';
+  if(!buyCost || !buyAmt || active.length===0) {
+    document.getElementById('opt-times').textContent = '—';
+    document.getElementById('opt-sub').textContent = '';
+    document.getElementById('opt-cost').textContent = '—';
+    document.getElementById('opt-gold').textContent = '—';
+    document.getElementById('opt-profit').textContent = '—';
+    document.getElementById('opt-profit').style.color = '';
+    document.getElementById('rec-box').className = 'rec-box zero';
+    document.getElementById('rec-box').textContent = '購入設定とレートを入力してください';
+    compareSection.style.display = 'none';
     return;
   }
 
-  let bestProfit=-Infinity,bestN=0;
-  for(let n=0;n<=300;n++){
-    const{g}=getConvertResult(p+n*buyAmt);
-    const profit=g-n*buyCost;
-    if(profit>bestProfit){bestProfit=profit;bestN=n;}
+  let bestProfit = -Infinity, bestN = 0;
+  for(let n=0; n<=300; n++) {
+    const {g} = getConvertResult(p + n*buyAmt);
+    const profit = g - n*buyCost;
+    if(profit > bestProfit) { bestProfit = profit; bestN = n; }
   }
 
-  const bestTotal=p+bestN*buyAmt;
-  const bestResult=getConvertResult(bestTotal);
-  const bestG=bestResult.g;
-  const bestRem=bestResult.rem;
-  const bestCost=bestN*buyCost;
+  const bestTotal = p + bestN*buyAmt;
+  const bestResult = getConvertResult(bestTotal);
+  const bestG = bestResult.g;
+  const bestRem = bestResult.rem;
+  const bestCost = bestN * buyCost;
 
-  document.getElementById('opt-times').textContent=bestN===0?'購入不要':bestN+'回';
-  document.getElementById('opt-sub').textContent=bestN>0?`+${bestN*buyAmt}個（所持合計 ${bestTotal}個）`:'現在の所持数で最適';
-  document.getElementById('opt-cost').textContent=bestCost.toLocaleString()+'G';
-  document.getElementById('opt-gold').textContent=bestG.toLocaleString()+'G';
+  document.getElementById('opt-times').textContent = bestN===0 ? '購入不要' : bestN+'回';
+  document.getElementById('opt-sub').textContent = bestN>0 ? `+${bestN*buyAmt}個（所持合計 ${bestTotal}個）` : '現在の所持数で最適';
+  document.getElementById('opt-cost').textContent = bestCost.toLocaleString()+'G';
+  document.getElementById('opt-gold').textContent = bestG.toLocaleString()+'G';
 
-  const profitEl=document.getElementById('opt-profit');
-  profitEl.textContent=(bestProfit>=0?'+':'')+bestProfit.toLocaleString()+'G';
-  profitEl.style.color=bestProfit>0?'#4ade80':bestProfit<0?'#f87171':'';
+  const profitEl = document.getElementById('opt-profit');
+  profitEl.textContent = (bestProfit>=0?'+':'') + bestProfit.toLocaleString()+'G';
+  profitEl.style.color = bestProfit>0 ? '#4ade80' : bestProfit<0 ? '#f87171' : '';
 
-  const recEl=document.getElementById('rec-box');
-  if(bestN===0&&bestProfit<=0){recEl.className='rec-box loss';recEl.textContent='購入すると損になります。余りは次回に持ち越すか、そのまま使うことを推奨します。';}
-  else if(bestN===0){recEl.className='rec-box zero';recEl.textContent='現在の所持数が最適です。追加購入は不要です。';}
-  else{recEl.className='rec-box profit';recEl.textContent=`${bestN}回購入（計 ${bestCost.toLocaleString()}G）すると変換後 ${bestG.toLocaleString()}G となり、純利益 +${bestProfit.toLocaleString()}G で最大になります。`+(bestRem>0?` 余り ${bestRem} 個は保存推奨。`:'');}
+  const recEl = document.getElementById('rec-box');
+  if(bestN===0 && bestProfit<=0){ recEl.className='rec-box loss'; recEl.textContent='購入すると損になります。余りは次回に持ち越すか、そのまま使うことを推奨します。'; }
+  else if(bestN===0){ recEl.className='rec-box zero'; recEl.textContent='現在の所持数が最適です。追加購入は不要です。'; }
+  else{ recEl.className='rec-box profit'; recEl.textContent=`${bestN}回購入（計 ${bestCost.toLocaleString()}G）すると変換後 ${bestG.toLocaleString()}G となり、純利益 +${bestProfit.toLocaleString()}G で最大になります。`+(bestRem>0?` 余り ${bestRem} 個は保存推奨。`:''); }
 
-  compareSection.style.display='block';
-  let rowsHTML='';
-  active.forEach(t=>{
-    const bc=base.counts[t]||0;
-    const ac=bestResult.counts[t]||0;
-    const bg=bc*(parseInt(document.getElementById('g'+t).value)||0);
-    const ag=ac*(parseInt(document.getElementById('g'+t).value)||0);
-    const diffG=ag-bg;
-    rowsHTML+=`<div class="compare-row">
-      <span class="cr-label">${names[t]}</span>
-      <span class="cr-val">${bc}個 / ${bg.toLocaleString()}G</span>
-      <span class="cr-val">${ac}個 / ${ag.toLocaleString()}G ${diffG!==0?fmtDiff(diffG):''}</span>
-    </div>`;
+  compareSection.style.display = 'block';
+  let rowsHTML = '';
+  active.forEach(t => {
+    const bc = base.counts[t] || 0;
+    const ac = bestResult.counts[t] || 0;
+    const bg = bc * (parseInt(document.getElementById('g'+t).value) || 0);
+    const ag = ac * (parseInt(document.getElementById('g'+t).value) || 0);
+    const diffG = ag - bg;
+    rowsHTML += `<div class="compare-row"><span class="cr-label">${names[t]}</span><span class="cr-val">${bc}個 / ${bg.toLocaleString()}G</span><span class="cr-val">${ac}個 / ${ag.toLocaleString()}G ${diffG!==0?fmtDiff(diffG):''}</span></div>`;
   });
-  document.getElementById('compare-rows').innerHTML=rowsHTML;
-  document.getElementById('ct-before').textContent=base.g.toLocaleString()+'G';
-  document.getElementById('ct-after').textContent=bestG.toLocaleString()+'G';
-  document.getElementById('ct-cost').innerHTML=bestCost>0?`<span style="color:#f87171;font-weight:700;">-${bestCost.toLocaleString()}G</span>`:'<span style="color:#7a7a9a;font-weight:600;">0G</span>';
-  document.getElementById('pr-before').innerHTML=`<span style="color:#f5c842">${base.g.toLocaleString()}G</span>`;
-  document.getElementById('pr-after').innerHTML=`<span style="color:#f5c842">${bestG.toLocaleString()}G</span> ${fmtDiff(bestProfit-base.g)}`;
+  document.getElementById('compare-rows').innerHTML = rowsHTML;
+  document.getElementById('ct-before').textContent = base.g.toLocaleString()+'G';
+  document.getElementById('ct-after').textContent  = bestG.toLocaleString()+'G';
+  document.getElementById('ct-cost').innerHTML = bestCost>0 ? `<span style="color:#f87171;font-weight:700;">-${bestCost.toLocaleString()}G</span>` : '<span style="color:#7a7a9a;font-weight:600;">0G</span>';
+  document.getElementById('pr-before').innerHTML = `<span style="color:#f5c842">${base.g.toLocaleString()}G</span>`;
+  document.getElementById('pr-after').innerHTML  = `<span style="color:#f5c842">${bestG.toLocaleString()}G</span> ${fmtDiff(bestProfit - base.g)}`;
 }
+
+// 初期値をセットして起動
+document.getElementById('buyCost').value = DEFAULT['A'].buyCost;
+document.getElementById('buyAmt').value  = DEFAULT['A'].buyAmt;
 calc();
 </script>
 </body>
